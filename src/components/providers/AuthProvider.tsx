@@ -10,59 +10,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const getUser = async (currentUser?: any) => {
+      try {
+        let authUser = currentUser;
+        
+        if (!authUser) {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            clearUser();
+            return;
+          }
+          authUser = user;
+        }
 
-      if (user) {
-        // Try to get user profile from DB
+        if (!authUser) return;
+
+        // Fetch profile
         const { data: profile } = await supabase
           .from("users")
           .select("*")
-          .eq("id", user.id)
+          .eq("id", authUser.id)
           .single();
 
         setUser({
-          id: user.id,
-          email: user.email || "",
+          id: authUser.id,
+          email: authUser.email || "",
           username:
             profile?.username ||
-            user.user_metadata?.username ||
-            user.email?.split("@")[0] ||
+            authUser.user_metadata?.username ||
+            authUser.email?.split("@")[0] ||
             "User",
           role: profile?.role || "user",
-          avatar: profile?.avatar || user.user_metadata?.avatar_url || null,
+          avatar: profile?.avatar || authUser.user_metadata?.avatar_url || null,
         });
+      } catch (err) {
+        console.error("Auth init error:", err);
       }
     };
 
+    // Initial fetch
     getUser();
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const user = session.user;
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        setUser({
-          id: user.id,
-          email: user.email || "",
-          username:
-            profile?.username ||
-            user.user_metadata?.username ||
-            user.email?.split("@")[0] ||
-            "User",
-          role: profile?.role || "user",
-          avatar: profile?.avatar || user.user_metadata?.avatar_url || null,
-        });
-      } else if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT") {
         clearUser();
+      } else if (session?.user) {
+        getUser(session.user);
       }
     });
 
