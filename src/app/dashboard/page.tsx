@@ -185,33 +185,40 @@ export default function DashboardPage() {
     if (!e.target.files || e.target.files.length === 0) return;
     setUploadingFiles(true);
     const files = Array.from(e.target.files);
-    const formPayload = new FormData();
-    files.forEach((file) => {
-      formPayload.append("images[]", file);
-    });
+    const newUrls: string[] = [];
 
     try {
-      // REPLACE THIS URL WITH YOUR ACTUAL DOMAIN WHERE upload.php IS LOCATED
-      const uploadApiUrl = "https://dev-store1.zya.me/imag/upload.php";
-      
-      const res = await fetch(uploadApiUrl, {
-        method: "POST",
-        body: formPayload,
-      });
-      const data = await res.json();
-      if (data.success && data.urls) {
-        const newUrls = data.urls.join(",");
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+
+        newUrls.push(publicUrlData.publicUrl);
+      }
+
+      if (newUrls.length > 0) {
+        const joinedUrls = newUrls.join(",");
         setFormData((prev) => ({
           ...prev,
-          thumbnail: prev.thumbnail ? `${prev.thumbnail},${newUrls}` : newUrls,
+          thumbnail: prev.thumbnail ? `${prev.thumbnail},${joinedUrls}` : joinedUrls,
         }));
         toast.success("Images uploaded successfully!");
-      } else {
-        toast.error("Upload failed: " + (data.error || "Unknown error"));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Upload error. Check domain and CORS.");
+      toast.error("Upload error: " + err.message);
     }
     setUploadingFiles(false);
   };
@@ -220,29 +227,32 @@ export default function DashboardPage() {
     if (!e.target.files || e.target.files.length === 0) return;
     setUploadingZip(true);
     const file = e.target.files[0];
-    const formPayload = new FormData();
-    formPayload.append("zip_file", file);
 
     try {
-      const uploadApiUrl = "https://dev-store1.zya.me/imag/upload_zip.php";
-      
-      const res = await fetch(uploadApiUrl, {
-        method: "POST",
-        body: formPayload,
-      });
-      const data = await res.json();
-      if (data.success && data.url) {
-        setFormData((prev) => ({
-          ...prev,
-          file_url: data.url,
-        }));
-        toast.success("ZIP file uploaded successfully!");
-      } else {
-        toast.error("Upload failed: " + (data.error || "Unknown error"));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `files/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
       }
-    } catch (err) {
+
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({
+        ...prev,
+        file_url: publicUrlData.publicUrl,
+      }));
+      toast.success("ZIP file uploaded successfully!");
+    } catch (err: any) {
       console.error(err);
-      toast.error("Upload error. Check domain and CORS.");
+      toast.error("Upload error: " + err.message);
     }
     setUploadingZip(false);
   };
