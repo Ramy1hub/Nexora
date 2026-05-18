@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -173,6 +174,41 @@ export default function DashboardPage() {
       });
     }
     setShowProductModal(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingFiles(true);
+    const files = Array.from(e.target.files);
+    const formPayload = new FormData();
+    files.forEach((file) => {
+      formPayload.append("images[]", file);
+    });
+
+    try {
+      // REPLACE THIS URL WITH YOUR ACTUAL DOMAIN WHERE upload.php IS LOCATED
+      const uploadApiUrl = "https://dev-store1.zya.me/imag/upload.php";
+      
+      const res = await fetch(uploadApiUrl, {
+        method: "POST",
+        body: formPayload,
+      });
+      const data = await res.json();
+      if (data.success && data.urls) {
+        const newUrls = data.urls.join(",");
+        setFormData((prev) => ({
+          ...prev,
+          thumbnail: prev.thumbnail ? `${prev.thumbnail},${newUrls}` : newUrls,
+        }));
+        toast.success("Images uploaded successfully!");
+      } else {
+        toast.error("Upload failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Upload error. Check domain and CORS.");
+    }
+    setUploadingFiles(false);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -375,7 +411,7 @@ export default function DashboardPage() {
                                 <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-400">
                                   {product.thumbnail ? (
                                     <Image
-                                      src={product.thumbnail}
+                                      src={product.thumbnail.split(',')[0]}
                                       alt={product.title}
                                       fill
                                       className="object-cover"
@@ -670,16 +706,36 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div className="space-y-1 md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thumbnail URL</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thumbnail URLs (Comma separated for multiple)</label>
                         <div className="relative">
                           <ImageIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input
-                            type="url"
+                            type="text"
                             value={formData.thumbnail}
                             onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
                             className="input-field pl-9"
-                            placeholder="https://images.unsplash.com/..."
+                            placeholder="https://image1.jpg, https://image2.jpg"
                           />
+                        </div>
+                        <div className="mt-2">
+                          <label className={`text-sm font-medium flex items-center gap-2 w-max cursor-pointer ${uploadingFiles ? 'text-gray-400' : 'text-primary hover:underline'}`}>
+                            {uploadingFiles ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>📤 Upload multiple images directly</>
+                            )}
+                            <input 
+                              type="file" 
+                              multiple 
+                              accept="image/*" 
+                              className="hidden" 
+                              onChange={handleFileUpload} 
+                              disabled={uploadingFiles} 
+                            />
+                          </label>
                         </div>
                       </div>
                       <div className="space-y-1 md:col-span-2">
