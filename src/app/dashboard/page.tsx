@@ -49,6 +49,7 @@ interface Product {
   category: string;
   thumbnail: string;
   demo_url: string | null;
+  file_url: string | null;
   sales: number;
   rating: number;
   features: string[];
@@ -74,6 +75,7 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadingZip, setUploadingZip] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -84,6 +86,7 @@ export default function DashboardPage() {
     category: "templates",
     thumbnail: "",
     demo_url: "",
+    file_url: "",
   });
 
   const isUserAdmin =
@@ -159,6 +162,7 @@ export default function DashboardPage() {
         category: product.category,
         thumbnail: product.thumbnail || "",
         demo_url: product.demo_url || "",
+        file_url: product.file_url || "",
       });
     } else {
       setEditingId(null);
@@ -171,6 +175,7 @@ export default function DashboardPage() {
         category: "templates",
         thumbnail: "",
         demo_url: "",
+        file_url: "",
       });
     }
     setShowProductModal(true);
@@ -211,6 +216,37 @@ export default function DashboardPage() {
     setUploadingFiles(false);
   };
 
+  const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingZip(true);
+    const file = e.target.files[0];
+    const formPayload = new FormData();
+    formPayload.append("zip_file", file);
+
+    try {
+      const uploadApiUrl = "https://dev-store1.zya.me/imag/upload_zip.php";
+      
+      const res = await fetch(uploadApiUrl, {
+        method: "POST",
+        body: formPayload,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFormData((prev) => ({
+          ...prev,
+          file_url: data.url,
+        }));
+        toast.success("ZIP file uploaded successfully!");
+      } else {
+        toast.error("Upload failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Upload error. Check domain and CORS.");
+    }
+    setUploadingZip(false);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -224,6 +260,7 @@ export default function DashboardPage() {
       category: formData.category,
       thumbnail: formData.thumbnail,
       demo_url: formData.demo_url,
+      file_url: formData.file_url,
     };
 
     let error;
@@ -749,6 +786,39 @@ export default function DashboardPage() {
                             className="input-field pl-9"
                             placeholder="https://demo.example.com"
                           />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Product ZIP File URL (For buyers)</label>
+                        <div className="relative">
+                          <Download size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            value={formData.file_url}
+                            onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                            className="input-field pl-9"
+                            placeholder="https://.../product.zip"
+                          />
+                        </div>
+                        <div className="mt-2">
+                          <label className={`text-sm font-medium flex items-center gap-2 w-max cursor-pointer ${uploadingZip ? 'text-gray-400' : 'text-primary hover:underline'}`}>
+                            {uploadingZip ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                Uploading ZIP...
+                              </>
+                            ) : (
+                              <>📦 Upload ZIP / RAR file directly</>
+                            )}
+                            <input 
+                              type="file" 
+                              accept=".zip,.rar" 
+                              className="hidden" 
+                              onChange={handleZipUpload} 
+                              disabled={uploadingZip} 
+                            />
+                          </label>
                         </div>
                       </div>
                     </div>
