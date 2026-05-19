@@ -189,20 +189,21 @@ export default function DashboardPage() {
 
     try {
       for (const file of files) {
-        const formData = new FormData();
-        formData.append("reqtype", "fileupload");
-        formData.append("fileToUpload", file);
+        const formPayload = new FormData();
+        formPayload.append("images[]", file);
 
-        // Using Catbox.moe free anonymous API which supports CORS and large files
-        const res = await fetch("https://catbox.moe/user/api.php", {
+        const res = await fetch("/api/upload-proxy", {
           method: "POST",
-          body: formData,
+          body: formPayload,
         });
 
-        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
         
-        const fileUrl = await res.text();
-        newUrls.push(fileUrl);
+        if (!data.success) throw new Error(data.error || "Upload failed");
+        
+        if (data.urls) {
+          newUrls.push(data.urls.join(","));
+        }
       }
 
       if (newUrls.length > 0) {
@@ -226,22 +227,24 @@ export default function DashboardPage() {
     const file = e.target.files[0];
 
     try {
-      const formData = new FormData();
-      formData.append("reqtype", "fileupload");
-      formData.append("fileToUpload", file);
+      const formPayload = new FormData();
+      formPayload.append("zip_file", file);
 
-      const res = await fetch("https://catbox.moe/user/api.php", {
+      const res = await fetch("/api/upload-proxy", {
         method: "POST",
-        body: formData,
+        headers: {
+          "x-upload-type": "zip"
+        },
+        body: formPayload,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
-      
-      const fileUrl = await res.text();
+      const data = await res.json();
 
+      if (!data.success) throw new Error(data.error || "Upload failed");
+      
       setFormData((prev) => ({
         ...prev,
-        file_url: fileUrl,
+        file_url: data.url,
       }));
       toast.success("ZIP file uploaded successfully!");
     } catch (err: any) {
