@@ -321,6 +321,40 @@ export default function DashboardPage() {
   };
 
   const handleDeleteProduct = async (id: string) => {
+    // Find the product to get file paths for cleanup
+    const productToDelete = products.find((p) => p.id === id);
+
+    // Delete storage files (images + ZIP)
+    if (productToDelete) {
+      try {
+        const filesToDelete: string[] = [];
+
+        // Extract image paths from thumbnail URLs
+        if (productToDelete.thumbnail) {
+          const imageUrls = productToDelete.thumbnail.split(",");
+          for (const url of imageUrls) {
+            const trimmed = url.trim();
+            const match = trimmed.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
+            if (match) filesToDelete.push(match[1]);
+          }
+        }
+
+        // Extract ZIP file path
+        if (productToDelete.file_url) {
+          const match = productToDelete.file_url.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
+          if (match) filesToDelete.push(match[1]);
+        }
+
+        // Delete all files from storage
+        if (filesToDelete.length > 0) {
+          await supabase.storage.from("products").remove(filesToDelete);
+        }
+      } catch (storageErr) {
+        console.error("Storage cleanup error:", storageErr);
+        // Continue with product deletion even if storage cleanup fails
+      }
+    }
+
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) {
       toast.error(error.message || "Failed to delete product");
