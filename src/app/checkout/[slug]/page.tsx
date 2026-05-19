@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import Image from "next/image";
 import {
   CreditCard,
-  Smartphone,
   ArrowRight,
   Shield,
   Check,
@@ -22,10 +21,7 @@ export default function CheckoutPage() {
   const { slug } = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
-  const [paymentMethod, setPaymentMethod] = useState<
-    "paypal" | "vodafone_cash"
-  >("paypal");
-  const [transactionId, setTransactionId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"paypal">("paypal");
   const [loading, setLoading] = useState(false);
 
   const product = demoProducts.find((p) => p.slug === slug);
@@ -44,11 +40,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (paymentMethod === "vodafone_cash" && !transactionId) {
-      toast.error("Please enter transaction ID");
-      return;
-    }
-
     setLoading(true);
     try {
       const supabase = createClient();
@@ -56,8 +47,8 @@ export default function CheckoutPage() {
         user_id: user.id,
         product_id: product.id,
         payment_method: paymentMethod,
-        payment_status: paymentMethod === "vodafone_cash" ? "pending" : "pending",
-        transaction_id: transactionId || null,
+        payment_status: "pending",
+        transaction_id: null,
         order_status: "pending",
       });
 
@@ -130,57 +121,8 @@ export default function CheckoutPage() {
                     </div>
                   </button>
 
-                  {/* Vodafone Cash */}
-                  <button
-                    onClick={() => setPaymentMethod("vodafone_cash")}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                      paymentMethod === "vodafone_cash"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 dark:border-slate-700 hover:border-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === "vodafone_cash"
-                          ? "border-primary"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {paymentMethod === "vodafone_cash" && (
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      )}
-                    </div>
-                    <Smartphone size={20} className="text-red-500" />
-                    <div className="text-left">
-                      <p className="font-medium text-gray-800 dark:text-white">
-                        {t("payment.vodafoneCash")}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Mobile wallet payment
-                      </p>
-                    </div>
                   </button>
                 </div>
-
-                {/* Vodafone Cash Instructions */}
-                {paymentMethod === "vodafone_cash" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800"
-                  >
-                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-                      {t("payment.vodafoneInstructions")}
-                    </p>
-                    <input
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      placeholder={t("payment.transactionId")}
-                      className="input-field"
-                    />
-                  </motion.div>
-                )}
               </div>
 
               {/* Security Badge */}

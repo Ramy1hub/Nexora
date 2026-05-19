@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
     siteName: "Nexora", siteDesc: "Premium Digital Marketplace", seoTitle: "Nexora — Premium Digital Marketplace",
-    paypalId: "", vodafoneNumber: "", twitter: "", github: "", linkedin: "",
+    paypalId: "", twitter: "", github: "", linkedin: "",
   });
 
   const handleSave = () => toast.success("Settings saved!");
@@ -43,9 +43,6 @@ export default function AdminSettingsPage() {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">PayPal Client ID</label>
           <input value={settings.paypalId} onChange={e => setSettings(p => ({...p, paypalId: e.target.value}))} className="input-field" placeholder="Enter PayPal Client ID" />
         </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vodafone Cash Number</label>
-          <input value={settings.vodafoneNumber} onChange={e => setSettings(p => ({...p, vodafoneNumber: e.target.value}))} className="input-field" placeholder="Enter Vodafone Cash number" />
         </div>
       </div>
 
