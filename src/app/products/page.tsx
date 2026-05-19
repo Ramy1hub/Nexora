@@ -52,8 +52,8 @@ function ProductsContent() {
       products = products.filter(
         (p) =>
           p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.tags.some((tag) => tag.toLowerCase().includes(q))
+          (p.description && p.description.toLowerCase().includes(q)) ||
+          (p.tags && Array.isArray(p.tags) && p.tags.some((tag: string) => tag.toLowerCase().includes(q)))
       );
     }
 
