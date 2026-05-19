@@ -227,7 +227,7 @@ export default function AdminProductsPage() {
                         <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-400">
                           {product.thumbnail ? (
                             <Image
-                              src={product.thumbnail}
+                              src={product.thumbnail.split(',')[0].trim()}
                               alt={product.title}
                               fill
                               className="object-cover"

@@ -30,7 +30,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         {/* Thumbnail */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <Image
-            src={product.thumbnail ? product.thumbnail.split(',')[0] : '/placeholder.png'}
+            src={product.thumbnail ? product.thumbnail.split(',')[0].trim() : '/placeholder.png'}
             alt={product.title}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"

@@ -159,7 +159,7 @@ export default function CheckoutPage() {
               <div className="flex gap-3 mb-4">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden shrink-0">
                   <Image
-                    src={product.thumbnail}
+                    src={product.thumbnail ? product.thumbnail.split(',')[0].trim() : '/placeholder.png'}
                     alt={product.title}
                     fill
                     className="object-cover"

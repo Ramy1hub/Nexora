@@ -73,8 +73,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = product.thumbnail?.split(',') || [];
-  const mainImage = images[selectedImage] || product.thumbnail;
+  const images = product.thumbnail?.split(',').map((img: string) => img.trim()) || [];
+  const mainImage = images[selectedImage] || product.thumbnail?.trim();
 
   const discount = product.old_price
     ? Math.round(
