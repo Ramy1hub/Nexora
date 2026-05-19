@@ -189,26 +189,20 @@ export default function DashboardPage() {
 
     try {
       for (const file of files) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `images/${fileName}`;
+        const formData = new FormData();
+        formData.append("reqtype", "fileupload");
+        formData.append("fileToUpload", file);
 
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
+        // Using Catbox.moe free anonymous API which supports CORS and large files
+        const res = await fetch("https://catbox.moe/user/api.php", {
+          method: "POST",
+          body: formData,
+        });
 
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath);
-
-        newUrls.push(publicUrlData.publicUrl);
+        if (!res.ok) throw new Error("Upload failed");
+        
+        const fileUrl = await res.text();
+        newUrls.push(fileUrl);
       }
 
       if (newUrls.length > 0) {
@@ -221,7 +215,7 @@ export default function DashboardPage() {
       }
     } catch (err: any) {
       console.error(err);
-      toast.error("Upload error: " + err.message);
+      toast.error("Upload error. Try uploading manually and pasting the link.");
     }
     setUploadingFiles(false);
   };
@@ -232,33 +226,27 @@ export default function DashboardPage() {
     const file = e.target.files[0];
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      const filePath = `files/${fileName}`;
+      const formData = new FormData();
+      formData.append("reqtype", "fileupload");
+      formData.append("fileToUpload", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      const res = await fetch("https://catbox.moe/user/api.php", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
+      if (!res.ok) throw new Error("Upload failed");
+      
+      const fileUrl = await res.text();
 
       setFormData((prev) => ({
         ...prev,
-        file_url: publicUrlData.publicUrl,
+        file_url: fileUrl,
       }));
       toast.success("ZIP file uploaded successfully!");
     } catch (err: any) {
       console.error(err);
-      toast.error("Upload error: " + err.message);
+      toast.error("Upload error. Try uploading manually and pasting the link.");
     }
     setUploadingZip(false);
   };
