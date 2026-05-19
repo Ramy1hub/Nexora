@@ -21,6 +21,7 @@ import ProductCard from "@/components/ui/ProductCard";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect } from "react";
+import { useAuthStore } from "@/store";
 
 export default function ProductDetailPage() {
   const { t } = useTranslation();
