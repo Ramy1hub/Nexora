@@ -415,6 +415,14 @@ export default function DashboardPage() {
               Manage your purchases, downloads, and account settings
             </p>
           </div>
+          {isUserAdmin && (
+            <Link
+              href="/admin"
+              className="btn-primary flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl shadow-lg shadow-primary/20 shrink-0 font-semibold"
+            >
+              Go to Admin Panel
+            </Link>
+          )}
         </motion.div>
 
         {loading ? (

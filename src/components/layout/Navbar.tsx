@@ -244,6 +244,16 @@ export default function Navbar() {
                         <LayoutDashboard size={16} />
                         {t("common.dashboard")}
                       </Link>
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <Settings size={16} className="text-primary" />
+                          Admin Panel
+                        </Link>
+                      )}
                       <Link
                         href="/purchases"
                         onClick={() => setUserMenuOpen(false)}
