@@ -195,7 +195,10 @@ export default function DashboardPage() {
 
         const { error: uploadError } = await supabase.storage
           .from('products')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
 
         if (uploadError) {
           throw uploadError;
@@ -235,7 +238,10 @@ export default function DashboardPage() {
 
       const { error: uploadError } = await supabase.storage
         .from('products')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
       if (uploadError) {
         throw uploadError;
