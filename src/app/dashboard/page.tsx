@@ -267,9 +267,20 @@ export default function DashboardPage() {
     e.preventDefault();
     setIsSaving(true);
 
+    const slugify = (text: string) =>
+      text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^\w\-]+/g, "")
+        .replace(/\-\-+/g, "-");
+
+    const cleanSlug = formData.slug ? slugify(formData.slug) : slugify(formData.title);
+
     const payload = {
       title: formData.title,
-      slug: formData.slug,
+      slug: cleanSlug,
       description: formData.description,
       price: formData.price,
       old_price: formData.old_price > 0 ? formData.old_price : null,
