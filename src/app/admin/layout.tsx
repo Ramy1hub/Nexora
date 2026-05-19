@@ -16,6 +16,7 @@ import {
   ChevronRight,
   LogOut,
   BarChart3,
+  Mail,
 } from "lucide-react";
 import { useAuthStore, useThemeStore } from "@/store";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +27,7 @@ const navItems = [
   { icon: <Package size={20} />, label: "Products", href: "/admin/products" },
   { icon: <ShoppingBag size={20} />, label: "Orders", href: "/admin/orders" },
   { icon: <Users size={20} />, label: "Users", href: "/admin/users" },
+  { icon: <Mail size={20} />, label: "Messages", href: "/admin/messages" },
   { icon: <Bell size={20} />, label: "Notifications", href: "/admin/notifications" },
   { icon: <Settings size={20} />, label: "Settings", href: "/admin/settings" },
 ];
