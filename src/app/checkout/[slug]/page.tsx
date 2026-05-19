@@ -1,40 +1,149 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import Image from "next/image";
 import {
   CreditCard,
-  ArrowRight,
   Shield,
   Check,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect } from "react";
 import { useAuthStore } from "@/store";
 import toast from "react-hot-toast";
+
+declare global {
+  interface Window {
+    paypal?: any;
+  }
+}
 
 export default function CheckoutPage() {
   const { t } = useTranslation();
   const { slug } = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
-  const [paymentMethod, setPaymentMethod] = useState<"paypal">("paypal");
-  const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const paypalContainerRef = useRef<HTMLDivElement>(null);
+  const paypalRendered = useRef(false);
 
+  // Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
       const supabase = createClient();
-      const { data } = await supabase.from("products").select("*").eq("slug", slug).single();
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", slug)
+        .single();
       if (data) setProduct(data);
       setPageLoading(false);
     };
     fetchProduct();
   }, [slug]);
+
+  // Load PayPal SDK
+  useEffect(() => {
+    if (!product || paypalLoaded) return;
+
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AfvStj7htrBrs6ysQLRp8gpgXvnEFLePEmMXTzu5lErDe9mdFJbeyTiv2uHiXcC7bi1RyOuTwyLo4-nt";
+
+    // Check if already loaded
+    if (window.paypal) {
+      setPaypalLoaded(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+    script.async = true;
+    script.onload = () => setPaypalLoaded(true);
+    script.onerror = () => toast.error("Failed to load PayPal. Please refresh.");
+    document.body.appendChild(script);
+
+    return () => {
+      // Don't remove script on cleanup to avoid re-loading issues
+    };
+  }, [product, paypalLoaded]);
+
+  // Render PayPal buttons
+  useEffect(() => {
+    if (!paypalLoaded || !window.paypal || !paypalContainerRef.current || !product || paypalRendered.current) return;
+
+    paypalRendered.current = true;
+
+    window.paypal
+      .Buttons({
+        style: {
+          layout: "vertical",
+          color: "blue",
+          shape: "rect",
+          label: "pay",
+          height: 45,
+        },
+        createOrder: async () => {
+          try {
+            const res = await fetch("/api/paypal/create-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                amount: product.price,
+                productTitle: product.title,
+                productId: product.id,
+              }),
+            });
+            const data = await res.json();
+            if (data.id) return data.id;
+            throw new Error(data.error || "Failed to create order");
+          } catch (err: any) {
+            toast.error(err.message);
+            throw err;
+          }
+        },
+        onApprove: async (data: any) => {
+          setProcessing(true);
+          try {
+            const res = await fetch("/api/paypal/capture-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: data.orderID,
+                userId: user?.id,
+                productId: product.id,
+                productTitle: product.title,
+                username: user?.username,
+              }),
+            });
+            const result = await res.json();
+
+            if (result.success) {
+              toast.success("🎉 Payment successful! Redirecting to downloads...");
+              setTimeout(() => router.push("/purchases"), 1500);
+            } else {
+              toast.error(result.error || "Payment failed");
+            }
+          } catch (err: any) {
+            toast.error("Error processing payment. Please contact support.");
+            console.error(err);
+          }
+          setProcessing(false);
+        },
+        onCancel: () => {
+          toast("Payment cancelled", { icon: "⚠️" });
+        },
+        onError: (err: any) => {
+          console.error("PayPal error:", err);
+          toast.error("PayPal encountered an error. Please try again.");
+        },
+      })
+      .render(paypalContainerRef.current);
+  }, [paypalLoaded, product, user, router]);
 
   if (pageLoading) {
     return (
@@ -52,41 +161,14 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleOrder = async () => {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
+  if (!user) {
+    router.push("/auth/login");
+    return null;
+  }
 
-    setLoading(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.from("orders").insert({
-        user_id: user.id,
-        product_id: product.id,
-        payment_method: paymentMethod,
-        payment_status: "pending",
-        transaction_id: null,
-        order_status: "pending",
-      });
-
-      if (error) throw error;
-
-      // Create notification for admin
-      await supabase.from("notifications").insert({
-        title: "New Order",
-        message: `${user.username} ordered ${product.title}`,
-        type: "order",
-        is_read: false,
-      });
-
-      toast.success(t("payment.orderPlaced"));
-      router.push("/purchases");
-    } catch (err) {
-      toast.error("Failed to place order. Please try again.");
-    }
-    setLoading(false);
-  };
+  const discount = product.old_price
+    ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
+    : 0;
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -100,52 +182,44 @@ export default function CheckoutPage() {
           </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Payment Methods */}
+            {/* Payment Section */}
             <div className="lg:col-span-2 space-y-6">
               <div className="glass-card rounded-2xl p-6">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
                   {t("payment.selectMethod")}
                 </h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Complete your purchase securely via PayPal
+                </p>
 
-                <div className="space-y-3">
-                  {/* PayPal */}
-                  <button
-                    onClick={() => setPaymentMethod("paypal")}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                      paymentMethod === "paypal"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 dark:border-slate-700 hover:border-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === "paypal"
-                          ? "border-primary"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {paymentMethod === "paypal" && (
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      )}
-                    </div>
-                    <CreditCard size={20} className="text-blue-500" />
-                    <div className="text-left">
-                      <p className="font-medium text-gray-800 dark:text-white">
-                        {t("payment.paypal")}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Secure payment via PayPal
-                      </p>
-                    </div>
-                  </button>
-                </div>
+                {/* Processing Overlay */}
+                {processing && (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <Loader2 size={32} className="text-primary animate-spin" />
+                    <p className="text-sm text-gray-500">Processing your payment...</p>
+                  </div>
+                )}
+
+                {/* PayPal Buttons Container */}
+                {!processing && (
+                  <div className="space-y-4">
+                    {!paypalLoaded ? (
+                      <div className="flex items-center justify-center py-8 gap-3">
+                        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <span className="text-sm text-gray-500">Loading PayPal...</span>
+                      </div>
+                    ) : (
+                      <div ref={paypalContainerRef} id="paypal-button-container" />
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Security Badge */}
               <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                <Shield size={20} className="text-green-500" />
+                <Shield size={20} className="text-green-500 shrink-0" />
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  Your payment is secured with 256-bit SSL encryption
+                  Your payment is secured with 256-bit SSL encryption via PayPal
                 </p>
               </div>
             </div>
@@ -159,7 +233,7 @@ export default function CheckoutPage() {
               <div className="flex gap-3 mb-4">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden shrink-0">
                   <Image
-                    src={product.thumbnail ? product.thumbnail.split(',')[0].trim() : '/placeholder.png'}
+                    src={product.thumbnail ? product.thumbnail.split(",")[0].trim() : "/placeholder.png"}
                     alt={product.title}
                     fill
                     className="object-cover"
@@ -194,25 +268,10 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleOrder}
-                disabled={loading}
-                className="w-full mt-6 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    Place Order
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-
-              <div className="mt-4 space-y-1.5">
+              <div className="mt-6 space-y-1.5">
                 {[
-                  "Instant access after approval",
-                  "Secure download link",
+                  "Instant download after payment",
+                  "Secure PayPal checkout",
                   "Lifetime updates",
                 ].map((item) => (
                   <div
