@@ -43,7 +43,6 @@ export default function AdminSettingsPage() {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">PayPal Client ID</label>
           <input value={settings.paypalId} onChange={e => setSettings(p => ({...p, paypalId: e.target.value}))} className="input-field" placeholder="Enter PayPal Client ID" />
         </div>
-        </div>
       </div>
 
       <div className="glass-card rounded-2xl p-6 space-y-5">

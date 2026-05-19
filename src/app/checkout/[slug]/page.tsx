@@ -120,8 +120,6 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                   </button>
-
-                  </button>
                 </div>
               </div>
 
