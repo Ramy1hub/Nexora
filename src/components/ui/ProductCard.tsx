@@ -7,6 +7,9 @@ import { Star, Heart, Eye, ShoppingCart, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Product } from "@/types";
 
+import { useAuthStore, useWishlistStore } from "@/store";
+import toast from "react-hot-toast";
+
 interface ProductCardProps {
   product: Product;
   index?: number;
@@ -14,6 +17,22 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const { wishlist, toggleWishlist } = useWishlistStore();
+
+  const isWishlisted = wishlist.some((item: any) => item.product_id === product.id);
+
+  const handleWishlistClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to wishlist");
+      return;
+    }
+    await toggleWishlist(product.id);
+    toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+  };
+
   const discount = product.old_price
     ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
     : 0;
@@ -61,8 +80,15 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               <Eye size={14} />
               {t("common.preview")}
             </Link>
-            <button className="p-2 rounded-lg bg-white/90 backdrop-blur-sm text-gray-600 hover:text-red-500 hover:bg-white transition-all">
-              <Heart size={14} />
+            <button
+              onClick={handleWishlistClick}
+              className={`p-2 rounded-lg bg-white/90 backdrop-blur-sm transition-all ${
+                isWishlisted
+                  ? "text-red-500 hover:text-red-600 bg-white"
+                  : "text-gray-600 hover:text-red-500 hover:bg-white"
+              }`}
+            >
+              <Heart size={14} className={isWishlisted ? "fill-current" : ""} />
             </button>
           </div>
         </div>

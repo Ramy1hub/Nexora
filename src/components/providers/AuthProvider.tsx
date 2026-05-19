@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore } from "@/store";
+import { useAuthStore, useWishlistStore } from "@/store";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, clearUser } = useAuthStore();
+  const { fetchWishlist } = useWishlistStore();
 
   useEffect(() => {
     const supabase = createClient();
@@ -18,6 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data: { user }, error } = await supabase.auth.getUser();
           if (error || !user) {
             clearUser();
+            useWishlistStore.setState({ wishlist: [] });
             return;
           }
           authUser = user;
@@ -43,6 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: profile?.role || "user",
           avatar: profile?.avatar || authUser.user_metadata?.avatar_url || null,
         });
+
+        // Fetch wishlist items
+        fetchWishlist();
       } catch (err) {
         console.error("Auth init error:", err);
       }
@@ -57,13 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
         clearUser();
+        useWishlistStore.setState({ wishlist: [] });
       } else if (session?.user) {
         getUser(session.user);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, clearUser]);
+  }, [setUser, clearUser, fetchWishlist]);
 
   return <>{children}</>;
 }
