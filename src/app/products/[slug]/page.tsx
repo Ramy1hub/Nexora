@@ -17,10 +17,10 @@ import {
   Download,
   Play,
 } from "lucide-react";
-import { demoProducts } from "@/lib/demo-data";
-import { useAuthStore } from "@/store";
 import ProductCard from "@/components/ui/ProductCard";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 
 export default function ProductDetailPage() {
   const { t } = useTranslation();
@@ -31,7 +31,31 @@ export default function ProductDetailPage() {
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
 
-  const product = demoProducts.find((p) => p.slug === slug);
+  const [product, setProduct] = useState<any>(null);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("products").select("*").eq("slug", slug).single();
+      if (data) {
+        setProduct(data);
+        const { data: related } = await supabase.from("products").select("*").eq("category", data.category).neq("id", data.id).limit(4);
+        if (related) setRelatedProducts(related);
+      }
+      setLoading(false);
+    };
+    fetchProduct();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-20">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -48,15 +72,14 @@ export default function ProductDetailPage() {
     );
   }
 
+  const images = product.thumbnail?.split(',') || [];
+  const mainImage = images[selectedImage] || product.thumbnail;
+
   const discount = product.old_price
     ? Math.round(
         ((product.old_price - product.price) / product.old_price) * 100
       )
     : 0;
-
-  const relatedProducts = demoProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
 
   const handleBuy = () => {
     if (!user) {
@@ -107,7 +130,7 @@ export default function ProductDetailPage() {
             {/* Main Image */}
             <div className="relative aspect-video rounded-2xl overflow-hidden glass-card">
               <Image
-                src={product.images[selectedImage] || product.thumbnail}
+                src={mainImage}
                 alt={product.title}
                 fill
                 className="object-cover"
@@ -121,9 +144,9 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Thumbnails */}
-            {product.images.length > 1 && (
+            {images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {product.images.map((img, i) => (
+                {images.map((img: string, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
@@ -193,22 +216,24 @@ export default function ProductDetailPage() {
             </p>
 
             {/* Features */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
-                {t("products.features")}
-              </h3>
-              <ul className="space-y-1.5">
-                {product.features.map((feature, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
-                  >
-                    <Check size={14} className="text-green-500 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.features && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
+                  {t("products.features")}
+                </h3>
+                <ul className="space-y-1.5">
+                  {product.features.map((feature: string, i: number) => (
+                    <li
+                      key={i}
+                      className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
+                    >
+                      <Check size={14} className="text-green-500 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="space-y-3 pt-4">
@@ -241,16 +266,18 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-2 pt-2">
-              {product.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs text-gray-500 dark:text-gray-400"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
+            {product.tags && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {product.tags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
 

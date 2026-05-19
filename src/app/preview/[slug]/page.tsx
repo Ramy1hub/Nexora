@@ -2,14 +2,34 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 import Link from "next/link";
-import { X, ShoppingCart, ExternalLink } from "lucide-react";
-import { demoProducts } from "@/lib/demo-data";
+import { X, ShoppingCart } from "lucide-react";
 
 export default function PreviewPage() {
   const { slug } = useParams();
   const router = useRouter();
-  const product = demoProducts.find((p) => p.slug === slug);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("products").select("*").eq("slug", slug).single();
+      if (data) setProduct(data);
+      setLoading(false);
+    };
+    fetchProduct();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!product || !product.demo_url) {
     return (

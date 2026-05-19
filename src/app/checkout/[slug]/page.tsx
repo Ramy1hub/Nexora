@@ -11,9 +11,9 @@ import {
   Shield,
   Check,
 } from "lucide-react";
-import { demoProducts } from "@/lib/demo-data";
-import { useAuthStore } from "@/store";
 import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
+import { useAuthStore } from "@/store";
 import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
@@ -23,8 +23,26 @@ export default function CheckoutPage() {
   const { user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState<"paypal">("paypal");
   const [loading, setLoading] = useState(false);
+  const [product, setProduct] = useState<any>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  const product = demoProducts.find((p) => p.slug === slug);
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("products").select("*").eq("slug", slug).single();
+      if (data) setProduct(data);
+      setPageLoading(false);
+    };
+    fetchProduct();
+  }, [slug]);
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-20">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

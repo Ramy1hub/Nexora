@@ -4,9 +4,11 @@ import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
-import { demoProducts, demoCategories } from "@/lib/demo-data";
+import { demoCategories } from "@/lib/demo-data";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 
 export default function ProductsPage() {
   return (
@@ -25,9 +27,21 @@ function ProductsContent() {
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || "all");
   const [sortBy, setSortBy] = useState("latest");
   const [showFilters, setShowFilters] = useState(false);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("products").select("*");
+      if (data) setAllProducts(data);
+      setLoading(false);
+    };
+    fetchAllProducts();
+  }, []);
 
   const filtered = useMemo(() => {
-    let products = [...demoProducts];
+    let products = [...allProducts];
 
     if (selectedCategory !== "all") {
       products = products.filter((p) => p.category === selectedCategory);
@@ -65,7 +79,7 @@ function ProductsContent() {
     }
 
     return products;
-  }, [search, selectedCategory, sortBy]);
+  }, [search, selectedCategory, sortBy, allProducts]);
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -151,7 +165,11 @@ function ProductsContent() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filtered.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filtered.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map((product, i) => (
                   <ProductCard key={product.id} product={product} index={i} />

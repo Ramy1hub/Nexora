@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
-import { demoProducts } from "@/lib/demo-data";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 interface ProductsSectionProps {
   variant: "featured" | "latest" | "trending";
@@ -14,30 +15,56 @@ interface ProductsSectionProps {
 export default function ProductsSection({ variant }: ProductsSectionProps) {
   const { t } = useTranslation();
 
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const supabase = createClient();
+      let query = supabase.from("products").select("*");
+      
+      if (variant === "featured") {
+        query = query.order("rating", { ascending: false }).limit(4);
+      } else if (variant === "latest") {
+        query = query.order("created_at", { ascending: false }).limit(4);
+      } else if (variant === "trending") {
+        query = query.order("sales", { ascending: false }).limit(4);
+      }
+      
+      const { data } = await query;
+      if (data) setProducts(data);
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, [variant]);
+
   const config = {
     featured: {
       title: t("products.featured"),
       subtitle: t("products.featuredSub"),
-      products: demoProducts.sort((a, b) => b.rating - a.rating).slice(0, 4),
     },
     latest: {
       title: t("products.latest"),
       subtitle: t("products.latestSub"),
-      products: demoProducts
-        .sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        .slice(0, 4),
     },
     trending: {
       title: t("products.trending"),
       subtitle: t("products.trendingSub"),
-      products: demoProducts.sort((a, b) => b.sales - a.sales).slice(0, 4),
     },
   };
 
-  const { title, subtitle, products } = config[variant];
+  const { title, subtitle } = config[variant];
+
+  if (loading) {
+    return (
+      <section className="py-24 bg-gray-50/50 dark:bg-slate-900/50 flex justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) return null;
 
   return (
     <section className="py-24 bg-gray-50/50 dark:bg-slate-900/50">
