@@ -189,21 +189,26 @@ export default function DashboardPage() {
 
     try {
       for (const file of files) {
-        const formPayload = new FormData();
-        formPayload.append("images[]", file);
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `images/${fileName}`;
 
-        const res = await fetch("/api/upload-proxy", {
-          method: "POST",
-          body: formPayload,
-        });
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
 
-        const data = await res.json();
-        
-        if (!data.success) throw new Error(data.error || "Upload failed");
-        
-        if (data.urls) {
-          newUrls.push(data.urls.join(","));
+        if (uploadError) {
+          throw uploadError;
         }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+
+        newUrls.push(publicUrlData.publicUrl);
       }
 
       if (newUrls.length > 0) {
@@ -227,24 +232,28 @@ export default function DashboardPage() {
     const file = e.target.files[0];
 
     try {
-      const formPayload = new FormData();
-      formPayload.append("zip_file", file);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `files/${fileName}`;
 
-      const res = await fetch("/api/upload-proxy", {
-        method: "POST",
-        headers: {
-          "x-upload-type": "zip"
-        },
-        body: formPayload,
-      });
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-      const data = await res.json();
+      if (uploadError) {
+        throw uploadError;
+      }
 
-      if (!data.success) throw new Error(data.error || "Upload failed");
-      
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
       setFormData((prev) => ({
         ...prev,
-        file_url: data.url,
+        file_url: publicUrlData.publicUrl,
       }));
       toast.success("ZIP file uploaded successfully!");
     } catch (err: any) {
