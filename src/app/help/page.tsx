@@ -12,7 +12,7 @@ export default function HelpCenterPage() {
     },
     {
       q: "What payment methods do you accept?",
-      a: "We currently accept PayPal and Vodafone Cash for all transactions.",
+      a: "We currently accept PayPal for all transactions.",
     },
     {
       q: "Can I use the templates for commercial projects?",

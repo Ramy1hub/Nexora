@@ -50,6 +50,7 @@ const en = {
     sales: "Sales",
     views: "Views",
     discount: "OFF",
+    backToSite: "Back to Website",
   },
   hero: {
     title: "Premium Digital Assets",
@@ -169,7 +170,7 @@ const en = {
     q5: "How do I sell my products?",
     a5: "Contact us to become a seller. We review all submissions to maintain quality standards.",
     q6: "What payment methods do you accept?",
-    a6: "We currently accept PayPal and Vodafone Cash. More payment methods coming soon.",
+    a6: "We currently accept PayPal. More payment methods coming soon.",
   },
   footer: {
     description:

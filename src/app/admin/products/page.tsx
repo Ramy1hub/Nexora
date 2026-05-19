@@ -13,6 +13,8 @@ import {
   Link as LinkIcon,
   AlertTriangle,
   Image as ImageIcon,
+  Upload,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -27,6 +29,7 @@ interface Product {
   category: string;
   thumbnail: string;
   demo_url: string | null;
+  zip_file: string | null;
   sales: number;
   rating: number;
   features: string[];
@@ -41,6 +44,8 @@ export default function AdminProductsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingZip, setUploadingZip] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -50,6 +55,7 @@ export default function AdminProductsPage() {
     category: "templates",
     thumbnail: "",
     demo_url: "",
+    zip_file: "",
   });
 
   // Delete confirm state
@@ -91,6 +97,7 @@ export default function AdminProductsPage() {
         category: product.category,
         thumbnail: product.thumbnail || "",
         demo_url: product.demo_url || "",
+        zip_file: product.zip_file || "",
       });
     } else {
       setEditingId(null);
@@ -103,6 +110,7 @@ export default function AdminProductsPage() {
         category: "templates",
         thumbnail: "",
         demo_url: "",
+        zip_file: "",
       });
     }
     setShowModal(true);
@@ -122,6 +130,7 @@ export default function AdminProductsPage() {
       category: formData.category,
       thumbnail: formData.thumbnail,
       demo_url: formData.demo_url,
+      zip_file: formData.zip_file || null,
     };
 
     let error;
@@ -149,6 +158,78 @@ export default function AdminProductsPage() {
     setIsSaving(false);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingImage(true);
+    const file = e.target.files[0];
+    const supabase = createClient();
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({
+        ...prev,
+        thumbnail: publicUrlData.publicUrl,
+      }));
+      toast.success("Image uploaded successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Upload failed: ${err.message || "Unknown error"}`);
+    }
+    setUploadingImage(false);
+  };
+
+  const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingZip(true);
+    const file = e.target.files[0];
+    const supabase = createClient();
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `zips/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({
+        ...prev,
+        zip_file: publicUrlData.publicUrl,
+      }));
+      toast.success("ZIP file uploaded successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Upload failed: ${err.message || "Unknown error"}`);
+    }
+    setUploadingZip(false);
+  };
+
   const handleDelete = async (id: string) => {
     const supabase = createClient();
 
@@ -167,6 +248,11 @@ export default function AdminProductsPage() {
             const match = trimmed.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
             if (match) filesToDelete.push(match[1]);
           }
+        }
+
+        if (productToDelete.zip_file) {
+          const match = productToDelete.zip_file.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
+          if (match) filesToDelete.push(match[1]);
         }
 
         if (filesToDelete.length > 0) {
@@ -504,20 +590,77 @@ export default function AdminProductsPage() {
                         />
                       </div>
 
-                      {/* Thumbnail URL */}
+                      {/* Thumbnail Image URL & Upload */}
                       <div className="space-y-1 md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Thumbnail URL
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                          <span>Thumbnail Image</span>
+                          <span className="text-xs text-gray-400">Upload file or enter URL</span>
                         </label>
-                        <div className="relative">
-                          <ImageIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="url"
-                            value={formData.thumbnail}
-                            onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                            className="input-field pl-9"
-                            placeholder="https://images.unsplash.com/..."
-                          />
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <ImageIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="url"
+                              value={formData.thumbnail}
+                              onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                              className="input-field pl-9"
+                              placeholder="https://images.unsplash.com/..."
+                            />
+                          </div>
+                          <label className="btn-secondary px-4 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer text-sm font-medium">
+                            {uploadingImage ? (
+                              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <Upload size={14} />
+                                Upload
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleImageUpload}
+                              disabled={uploadingImage}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Product ZIP File */}
+                      <div className="space-y-1 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                          <span>Product ZIP File (For buyers)</span>
+                          <span className="text-xs text-gray-400">Upload file or enter URL</span>
+                        </label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Download size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              value={formData.zip_file}
+                              onChange={(e) => setFormData({ ...formData, zip_file: e.target.value })}
+                              className="input-field pl-9"
+                              placeholder="https://.../product.zip"
+                            />
+                          </div>
+                          <label className="btn-secondary px-4 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer text-sm font-medium">
+                            {uploadingZip ? (
+                              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <Upload size={14} />
+                                Upload ZIP
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept=".zip,.rar"
+                              className="hidden"
+                              onChange={handleZipUpload}
+                              disabled={uploadingZip}
+                            />
+                          </label>
                         </div>
                       </div>
 

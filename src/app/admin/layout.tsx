@@ -17,10 +17,12 @@ import {
   LogOut,
   BarChart3,
   Mail,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuthStore, useThemeStore } from "@/store";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 const navItems = [
   { icon: <LayoutDashboard size={20} />, label: "Overview", href: "/admin" },
@@ -39,6 +41,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, clearUser } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -102,9 +105,16 @@ export default function AdminLayout({
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors mb-2"
+          >
+            <ArrowLeft size={16} />
+            {t("common.backToSite") || "Back to Website"}
+          </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
           >
             <LogOut size={16} />
             Sign Out
@@ -137,34 +147,67 @@ export default function AdminLayout({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-slate-900 z-50 shadow-2xl"
+              className="lg:hidden fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col justify-between"
             >
-              <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-slate-800">
-                <span className="font-bold gradient-text">Nexora Admin</span>
-                <button onClick={() => setSidebarOpen(false)}>
-                  <X size={20} className="text-gray-500" />
+              <div>
+                <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-slate-800">
+                  <span className="font-bold gradient-text">Nexora Admin</span>
+                  <button onClick={() => setSidebarOpen(false)}>
+                    <X size={20} className="text-gray-500" />
+                  </button>
+                </div>
+                <nav className="p-4 space-y-1">
+                  {navItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-primary text-white"
+                            : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 dark:border-slate-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {user?.username?.charAt(0).toUpperCase() || "A"}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                      {user?.username}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
+                </div>
+                <Link
+                  href="/"
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors mb-2"
+                >
+                  <ArrowLeft size={16} />
+                  {t("common.backToSite") || "Back to Website"}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                >
+                  <LogOut size={16} />
+                  Sign Out
                 </button>
               </div>
-              <nav className="p-4 space-y-1">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                        isActive
-                          ? "bg-primary text-white"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
             </motion.aside>
           </>
         )}

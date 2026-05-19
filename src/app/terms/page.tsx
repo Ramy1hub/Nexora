@@ -9,7 +9,7 @@ export default function TermsPage() {
         <h2>2. User Accounts</h2>
         <p>You are responsible for maintaining the security of your account. You must provide accurate information during registration.</p>
         <h2>3. Purchases &amp; Payments</h2>
-        <p>All purchases are final after order approval. We accept PayPal and Vodafone Cash. Prices are listed in USD.</p>
+        <p>All purchases are final after order approval. We accept PayPal. Prices are listed in USD.</p>
         <h2>4. License</h2>
         <p>Each purchase grants you a single-use license unless otherwise specified. Redistribution of purchased items is prohibited.</p>
         <h2>5. Refund Policy</h2>

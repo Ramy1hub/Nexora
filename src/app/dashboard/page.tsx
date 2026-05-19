@@ -49,7 +49,7 @@ interface Product {
   category: string;
   thumbnail: string;
   demo_url: string | null;
-  file_url: string | null;
+  zip_file: string | null;
   sales: number;
   rating: number;
   features: string[];
@@ -86,7 +86,7 @@ export default function DashboardPage() {
     category: "templates",
     thumbnail: "",
     demo_url: "",
-    file_url: "",
+    zip_file: "",
   });
 
   const isUserAdmin =
@@ -162,7 +162,7 @@ export default function DashboardPage() {
         category: product.category,
         thumbnail: product.thumbnail || "",
         demo_url: product.demo_url || "",
-        file_url: product.file_url || "",
+        zip_file: product.zip_file || "",
       });
     } else {
       setEditingId(null);
@@ -175,7 +175,7 @@ export default function DashboardPage() {
         category: "templates",
         thumbnail: "",
         demo_url: "",
-        file_url: "",
+        zip_file: "",
       });
     }
     setShowProductModal(true);
@@ -221,7 +221,7 @@ export default function DashboardPage() {
       }
     } catch (err: any) {
       console.error(err);
-      toast.error("Upload error. Try uploading manually and pasting the link.");
+      toast.error(`Upload failed: ${err.message || "Unknown error"}`);
     }
     setUploadingFiles(false);
   };
@@ -253,12 +253,12 @@ export default function DashboardPage() {
 
       setFormData((prev) => ({
         ...prev,
-        file_url: publicUrlData.publicUrl,
+        zip_file: publicUrlData.publicUrl,
       }));
       toast.success("ZIP file uploaded successfully!");
     } catch (err: any) {
       console.error(err);
-      toast.error("Upload error. Try uploading manually and pasting the link.");
+      toast.error(`Upload failed: ${err.message || "Unknown error"}`);
     }
     setUploadingZip(false);
   };
@@ -287,7 +287,7 @@ export default function DashboardPage() {
       category: formData.category,
       thumbnail: formData.thumbnail,
       demo_url: formData.demo_url,
-      file_url: formData.file_url,
+      zip_file: formData.zip_file,
     };
 
     let error;
@@ -340,8 +340,8 @@ export default function DashboardPage() {
         }
 
         // Extract ZIP file path
-        if (productToDelete.file_url) {
-          const match = productToDelete.file_url.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
+        if (productToDelete.zip_file) {
+          const match = productToDelete.zip_file.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
           if (match) filesToDelete.push(match[1]);
         }
 
@@ -864,8 +864,8 @@ export default function DashboardPage() {
                           <Download size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input
                             type="text"
-                            value={formData.file_url}
-                            onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                            value={formData.zip_file}
+                            onChange={(e) => setFormData({ ...formData, zip_file: e.target.value })}
                             className="input-field pl-9"
                             placeholder="https://.../product.zip"
                           />

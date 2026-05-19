@@ -22,7 +22,7 @@ interface OrderWithProduct {
     slug: string;
     price: number;
     thumbnail: string;
-    file_url: string | null;
+    zip_file: string | null;
     category: string;
   };
 }
@@ -40,7 +40,7 @@ export default function PurchasesPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, order_status, payment_status, transaction_id, products(id, title, slug, price, thumbnail, file_url, category)")
+        .select("id, created_at, order_status, payment_status, transaction_id, products(id, title, slug, price, thumbnail, zip_file, category)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -180,17 +180,17 @@ export default function PurchasesPage() {
                 </div>
 
                 {/* Download / Status */}
-                {p.order_status === "approved" && p.products?.file_url ? (
+                {p.order_status === "approved" && p.products?.zip_file ? (
                   <button
                     onClick={() =>
-                      handleDownload(p.products.file_url!, p.products.title)
+                      handleDownload(p.products.zip_file!, p.products.title)
                     }
                     className="btn-primary text-sm flex items-center gap-1.5 self-center whitespace-nowrap"
                   >
                     <Download size={14} />
                     {t("common.download")}
                   </button>
-                ) : p.order_status === "approved" && !p.products?.file_url ? (
+                ) : p.order_status === "approved" && !p.products?.zip_file ? (
                   <span className="self-center text-xs text-green-500 font-medium">
                     ✅ Paid — File coming soon
                   </span>

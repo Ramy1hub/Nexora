@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <h2>4. Cookies</h2>
         <p>We use cookies and similar technologies to enhance your experience, remember preferences, and analyze site traffic.</p>
         <h2>5. Third-Party Services</h2>
-        <p>We may share information with trusted third-party services for payment processing (PayPal, Vodafone Cash) and analytics.</p>
+        <p>We may share information with trusted third-party services for payment processing (PayPal) and analytics.</p>
         <h2>6. Your Rights</h2>
         <p>You have the right to access, update, or delete your personal information at any time through your account settings.</p>
         <h2>7. Contact Us</h2>
